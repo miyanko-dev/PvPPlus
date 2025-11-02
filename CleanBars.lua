@@ -1,14 +1,14 @@
 -- Hides status tracking bars in arenas, battlegrounds, and PvP zones
 
-local function updateBarVisibility()
+local function updateStatusTrackingBarVisibility()
     if not MainStatusTrackingBarContainer then
         return
     end
 
     local _, instanceType = IsInInstance()
-    local zonePvp = GetZonePVPInfo()
+    local zonePvpInfo = GetZonePVPInfo()
     
-    if instanceType == "arena" or instanceType == "pvp" or zonePvp == "combat" then
+    if instanceType == "arena" or instanceType == "pvp" or zonePvpInfo == "combat" then
         MainStatusTrackingBarContainer:Hide()
         MainStatusTrackingBarContainer:SetScript("OnShow", MainStatusTrackingBarContainer.Hide)
     else
@@ -17,7 +17,7 @@ local function updateBarVisibility()
     end
 end
 
-local eventFrame = CreateFrame("Frame")
-eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-eventFrame:SetScript("OnEvent", updateBarVisibility)
+local statusTrackingBarEventFrame = CreateFrame("Frame")
+statusTrackingBarEventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+statusTrackingBarEventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+statusTrackingBarEventFrame:SetScript("OnEvent", updateStatusTrackingBarVisibility)
