@@ -1,7 +1,0 @@
-## Interface: 110200
-## Title: Hide Bars
-## Notes: Hides status tracking bars in arenas, battlegrounds, and PvP zones
-## Author: MIYANKO
-## Version: 1.0.0
-
-HideBars.lua

@@ -1,6 +1,6 @@
-# Hide Bars
+# Hide Honor Bar
 
-World of Warcraft Retail addon that automatically hides status tracking bars in competitive PvP environments.
+World of Warcraft Retail addon that automatically hides honor and status tracking bars in competitive PvP environments.
 
 ## Features
 
