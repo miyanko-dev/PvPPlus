@@ -9,7 +9,7 @@ local defaults = {
 
 -- Hide honor/status tracking bars in PvP
 local function UpdateStatusBarVisibility()
-    if not EasyPvPDB.hideHonorBar then
+    if not PvPPlusDB.hideHonorBar then
         if MainStatusTrackingBarContainer then
             MainStatusTrackingBarContainer:Show()
             MainStatusTrackingBarContainer:SetScript("OnShow", nil)
@@ -33,7 +33,7 @@ end
 
 -- Auto release in battlegrounds and arenas
 local function ShouldAutoRelease()
-    if not EasyPvPDB.autoRelease then return false end
+    if not PvPPlusDB.autoRelease then return false end
 
     if C_PvP.IsBattleground() then return true end
 
@@ -64,7 +64,7 @@ end
 
 -- Tab targeting: players in PvP, all enemies outside
 local function UpdateTabTargeting()
-    if not EasyPvPDB.tabTargeting then return end
+    if not PvPPlusDB.tabTargeting then return end
 
     local inInstance, instanceType = IsInInstance()
     local inPvP = inInstance and (instanceType == "pvp" or instanceType == "arena")
@@ -87,33 +87,33 @@ frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 
 frame:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 == ADDON_NAME then
-        if not EasyPvPDB then EasyPvPDB = {} end
+        if not PvPPlusDB then PvPPlusDB = {} end
         for k, v in pairs(defaults) do
-            if EasyPvPDB[k] == nil then
-                EasyPvPDB[k] = v
+            if PvPPlusDB[k] == nil then
+                PvPPlusDB[k] = v
             end
         end
 
-        SLASH_EASYPVP1 = "/easypvp"
-        SLASH_EASYPVP2 = "/epvp"
-        SlashCmdList["EASYPVP"] = function(msg)
+        SLASH_PVPPLUS1 = "/pvpplus"
+        SLASH_PVPPLUS2 = "/pvp+"
+        SlashCmdList["PVPPLUS"] = function(msg)
             msg = strlower(strtrim(msg or ""))
             if msg == "bar" then
-                EasyPvPDB.hideHonorBar = not EasyPvPDB.hideHonorBar
-                print("|cff00ccff[EasyPvP]|r Hide honor bar: " .. (EasyPvPDB.hideHonorBar and "ON" or "OFF"))
+                PvPPlusDB.hideHonorBar = not PvPPlusDB.hideHonorBar
+                print("|cff00ccff[PvP Plus]|r Hide honor bar: " .. (PvPPlusDB.hideHonorBar and "ON" or "OFF"))
                 UpdateStatusBarVisibility()
             elseif msg == "release" then
-                EasyPvPDB.autoRelease = not EasyPvPDB.autoRelease
-                print("|cff00ccff[EasyPvP]|r Auto release: " .. (EasyPvPDB.autoRelease and "ON" or "OFF"))
+                PvPPlusDB.autoRelease = not PvPPlusDB.autoRelease
+                print("|cff00ccff[PvP Plus]|r Auto release: " .. (PvPPlusDB.autoRelease and "ON" or "OFF"))
             elseif msg == "tab" then
-                EasyPvPDB.tabTargeting = not EasyPvPDB.tabTargeting
-                print("|cff00ccff[EasyPvP]|r Tab targeting: " .. (EasyPvPDB.tabTargeting and "ON" or "OFF"))
+                PvPPlusDB.tabTargeting = not PvPPlusDB.tabTargeting
+                print("|cff00ccff[PvP Plus]|r Tab targeting: " .. (PvPPlusDB.tabTargeting and "ON" or "OFF"))
                 UpdateTabTargeting()
             else
-                print("|cff00ccff[EasyPvP]|r Commands:")
-                print("  /easypvp bar - Toggle hide honor bar (" .. (EasyPvPDB.hideHonorBar and "ON" or "OFF") .. ")")
-                print("  /easypvp release - Toggle auto release (" .. (EasyPvPDB.autoRelease and "ON" or "OFF") .. ")")
-                print("  /easypvp tab - Toggle tab targeting (" .. (EasyPvPDB.tabTargeting and "ON" or "OFF") .. ")")
+                print("|cff00ccff[PvP Plus]|r Commands:")
+                print("  /pvpplus bar - Toggle hide honor bar (" .. (PvPPlusDB.hideHonorBar and "ON" or "OFF") .. ")")
+                print("  /pvpplus release - Toggle auto release (" .. (PvPPlusDB.autoRelease and "ON" or "OFF") .. ")")
+                print("  /pvpplus tab - Toggle tab targeting (" .. (PvPPlusDB.tabTargeting and "ON" or "OFF") .. ")")
             end
         end
 

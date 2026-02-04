@@ -1,4 +1,4 @@
-# EasyPvP
+# PvP Plus
 
 Minimal WoW addon with quality-of-life features for PvP.
 
@@ -10,11 +10,11 @@ Minimal WoW addon with quality-of-life features for PvP.
 
 ## Commands
 
-- `/easypvp` - Show all commands
-- `/easypvp bar` - Toggle hide honor bar
-- `/easypvp release` - Toggle auto release
-- `/easypvp tab` - Toggle tab targeting
+- `/pvpplus` - Show all commands
+- `/pvpplus bar` - Toggle hide honor bar
+- `/pvpplus release` - Toggle auto release
+- `/pvpplus tab` - Toggle tab targeting
 
 ## Installation
 
-Copy the `EasyPvP` folder to your `World of Warcraft/_retail_/Interface/AddOns` directory.
+Copy the `PvPPlus` folder to your `World of Warcraft/_retail_/Interface/AddOns` directory.
