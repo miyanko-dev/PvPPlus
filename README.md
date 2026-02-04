@@ -15,6 +15,3 @@ Minimal WoW addon with quality-of-life features for PvP.
 - `/pvpplus release` - Toggle auto release
 - `/pvpplus tab` - Toggle tab targeting
 
-## Installation
-
-Copy the `PvPPlus` folder to your `World of Warcraft/_retail_/Interface/AddOns` directory.
