@@ -4,5 +4,6 @@
 ## Author: MIYANKO
 ## Version: 1.0.0
 ## SavedVariables: PvPPlusDB
+## X-Curse-Project-ID: 1453981
 
 PvPPlus.lua
