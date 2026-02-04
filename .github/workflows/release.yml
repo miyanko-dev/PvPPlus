@@ -5,6 +5,9 @@ on:
     tags:
       - '*'
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -21,15 +24,3 @@ jobs:
         env:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Update CurseForge Description
-        run: |
-          # Convert README.md to CurseForge description
-          DESCRIPTION=$(cat README.md)
-          
-          # Upload description to CurseForge
-          curl -X PATCH \
-            -H "X-Api-Token: ${{ secrets.CF_API_KEY }}" \
-            -H "Content-Type: application/json" \
-            -d "{\"description\": $(echo "$DESCRIPTION" | jq -Rs .)}" \
-            "https://wow.curseforge.com/api/projects/1453981"
