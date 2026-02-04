@@ -2,7 +2,7 @@
 ## Title: PvP Plus
 ## Notes: Hides honor bar in PvP, auto releases ghost in battlegrounds, and switches tab targeting to players in PvP
 ## Author: MIYANKO
-## Version: 1.0.4
+## Version: 1.0.0
 ## SavedVariables: PvPPlusDB
 ## X-Curse-Project-ID: 1453981
 
