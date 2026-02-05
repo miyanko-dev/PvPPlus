@@ -1,9 +1,8 @@
 ## Interface: 120000
 ## Title: PvP Plus
-## Notes: Hides honor bar in PvP, auto releases ghost in battlegrounds, and switches tab targeting to players in PvP
+## Notes: Auto release in battlegrounds, hide honor bar in PvP
 ## Author: MIYANKO
-## Version: 1.0.0
-## SavedVariables: PvPPlusDB
-## X-Curse-Project-ID: 1453981
+## Version: 1.1.0
+## X-Curse-Project-ID: 1247973
 
 PvPPlus.lua

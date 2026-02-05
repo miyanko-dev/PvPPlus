@@ -1,131 +1,75 @@
-local ADDON_NAME, ns = ...
+local ADDON_NAME = ...
 
--- Settings defaults
-local defaults = {
-    hideHonorBar = true,
-    autoRelease = true,
-    tabTargeting = true,
-}
+-- Hide honor bar in PvP by hooking the CanShowBar function
+local originalCanShowBar
+local function HookStatusTrackingBar()
+    if not StatusTrackingBarManager then return end
+    if originalCanShowBar then return end
 
--- Hide honor/status tracking bars in PvP
-local function UpdateStatusBarVisibility()
-    if not PvPPlusDB.hideHonorBar then
-        if MainStatusTrackingBarContainer then
-            MainStatusTrackingBarContainer:Show()
-            MainStatusTrackingBarContainer:SetScript("OnShow", nil)
+    originalCanShowBar = StatusTrackingBarManager.CanShowBar
+    StatusTrackingBarManager.CanShowBar = function(self, barIndex)
+        if barIndex == StatusTrackingBarInfo.BarsEnum.Honor then
+            local _, instanceType = IsInInstance()
+            if instanceType == "pvp" or instanceType == "arena" then
+                return false
+            end
         end
-        return
+        return originalCanShowBar(self, barIndex)
     end
-
-    if not MainStatusTrackingBarContainer then return end
-
-    local _, instanceType = IsInInstance()
-    local zonePvpInfo = GetZonePVPInfo()
-
-    if instanceType == "arena" or instanceType == "pvp" or zonePvpInfo == "combat" then
-        MainStatusTrackingBarContainer:Hide()
-        MainStatusTrackingBarContainer:SetScript("OnShow", MainStatusTrackingBarContainer.Hide)
-    else
-        MainStatusTrackingBarContainer:Show()
-        MainStatusTrackingBarContainer:SetScript("OnShow", nil)
-    end
+    StatusTrackingBarManager:UpdateBarsShown()
 end
 
--- Auto release in battlegrounds and arenas
-local function ShouldAutoRelease()
-    if not PvPPlusDB.autoRelease then return false end
-
-    if C_PvP.IsBattleground() then return true end
-
-    local inInstance, instanceType = IsInInstance()
-    if inInstance and (instanceType == "pvp" or instanceType == "arena") then
-        return true
-    end
-
-    return false
-end
-
+-- Auto release in battlegrounds by clicking the release button on death popup
 local function TryAutoRelease(attempt)
     attempt = attempt or 1
     if attempt > 20 then return end
 
+    -- Check for blocking conditions
     if HasNoReleaseAura() then
         C_Timer.After(0.5, function() TryAutoRelease(attempt + 1) end)
         return
     end
-
     if C_InstanceEncounter and C_InstanceEncounter.IsEncounterSuppressingRelease and C_InstanceEncounter.IsEncounterSuppressingRelease() then
         C_Timer.After(0.5, function() TryAutoRelease(attempt + 1) end)
         return
     end
 
-    RepopMe()
-end
+    -- Find and click the death popup release button
+    local popup = StaticPopup_Visible("DEATH")
+    if popup then
+        local button = _G[popup .. "Button1"]
+        if button and button:IsEnabled() then
+            button:Click()
+            return
+        end
+    end
 
--- Tab targeting: players in PvP, all enemies outside
-local function UpdateTabTargeting()
-    if not PvPPlusDB.tabTargeting then return end
-
-    local inInstance, instanceType = IsInInstance()
-    local inPvP = inInstance and (instanceType == "pvp" or instanceType == "arena")
-
-    if inPvP then
-        SetCVar("targetNearestUseOld", 0)
-        SetBinding("TAB", "TARGETNEARESTENEMYPLAYER")
-    else
-        SetBinding("TAB", "TARGETNEARESTENEMY")
+    -- Popup not ready yet, retry
+    if attempt < 20 then
+        C_Timer.After(0.3, function() TryAutoRelease(attempt + 1) end)
     end
 end
 
--- Event handler
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("PLAYER_DEAD")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-frame:RegisterEvent("PLAYER_ENTERING_BATTLEGROUND")
 frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 
 frame:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 == ADDON_NAME then
-        if not PvPPlusDB then PvPPlusDB = {} end
-        for k, v in pairs(defaults) do
-            if PvPPlusDB[k] == nil then
-                PvPPlusDB[k] = v
-            end
-        end
-
-        SLASH_PVPPLUS1 = "/pvpplus"
-        SLASH_PVPPLUS2 = "/pvp+"
-        SlashCmdList["PVPPLUS"] = function(msg)
-            msg = strlower(strtrim(msg or ""))
-            if msg == "bar" then
-                PvPPlusDB.hideHonorBar = not PvPPlusDB.hideHonorBar
-                print("|cff00ccff[PvP Plus]|r Hide honor bar: " .. (PvPPlusDB.hideHonorBar and "ON" or "OFF"))
-                UpdateStatusBarVisibility()
-            elseif msg == "release" then
-                PvPPlusDB.autoRelease = not PvPPlusDB.autoRelease
-                print("|cff00ccff[PvP Plus]|r Auto release: " .. (PvPPlusDB.autoRelease and "ON" or "OFF"))
-            elseif msg == "tab" then
-                PvPPlusDB.tabTargeting = not PvPPlusDB.tabTargeting
-                print("|cff00ccff[PvP Plus]|r Tab targeting: " .. (PvPPlusDB.tabTargeting and "ON" or "OFF"))
-                UpdateTabTargeting()
-            else
-                print("|cff00ccff[PvP Plus]|r Commands:")
-                print("  /pvpplus bar - Toggle hide honor bar (" .. (PvPPlusDB.hideHonorBar and "ON" or "OFF") .. ")")
-                print("  /pvpplus release - Toggle auto release (" .. (PvPPlusDB.autoRelease and "ON" or "OFF") .. ")")
-                print("  /pvpplus tab - Toggle tab targeting (" .. (PvPPlusDB.tabTargeting and "ON" or "OFF") .. ")")
-            end
-        end
-
+        HookStatusTrackingBar()
     elseif event == "PLAYER_DEAD" then
-        if ShouldAutoRelease() then
-            C_Timer.After(2, function() TryAutoRelease(1) end)
+        local _, instanceType = IsInInstance()
+        if instanceType == "pvp" or instanceType == "arena" then
+            C_Timer.After(0.5, function() TryAutoRelease(1) end)
         end
-
-    elseif event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_ENTERING_BATTLEGROUND" or event == "ZONE_CHANGED_NEW_AREA" then
+    elseif event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA" then
+        HookStatusTrackingBar()
         C_Timer.After(0.5, function()
-            UpdateStatusBarVisibility()
-            UpdateTabTargeting()
+            if StatusTrackingBarManager then
+                StatusTrackingBarManager:UpdateBarsShown()
+            end
         end)
     end
 end)
