@@ -2,7 +2,10 @@ package-as: PvPPlus
 
 enable-nolib-creation: no
 
+manual-changelog: CHANGELOG.md
+
 ignore:
   - .github
   - README.md
+  - CHANGELOG.md
   - .gitignore
