@@ -1,6 +1,9 @@
+-- Hide honor bar in PvP instances and auto release on death in battlegrounds
+
 local ADDON_NAME = ...
 
--- Hide honor bar in PvP by hooking the CanShowBar function
+-- Hook CanShowBar to suppress honor bar in PvP and arena instances
+
 local originalCanShowBar
 local function HookStatusTrackingBar()
     if not StatusTrackingBarManager then return end
@@ -19,12 +22,14 @@ local function HookStatusTrackingBar()
     StatusTrackingBarManager:UpdateBarsShown()
 end
 
--- Auto release in battlegrounds by clicking the release button on death popup
+-- Auto release ghost by clicking death popup when inside a battleground
+
 local function TryAutoRelease(attempt)
     attempt = attempt or 1
     if attempt > 20 then return end
 
-    -- Check for blocking conditions
+    -- Abort if a release-blocking aura or encounter is active
+
     if HasNoReleaseAura() then
         C_Timer.After(0.5, function() TryAutoRelease(attempt + 1) end)
         return
@@ -34,7 +39,8 @@ local function TryAutoRelease(attempt)
         return
     end
 
-    -- Find and click the death popup release button
+    -- Find and click the release button on the death popup
+
     local popup = StaticPopup_Visible("DEATH")
     if popup then
         local button = _G[popup .. "Button1"]
@@ -44,19 +50,20 @@ local function TryAutoRelease(attempt)
         end
     end
 
-    -- Popup not ready yet, retry
+    -- Retry until popup is ready or max attempts are reached
+
     if attempt < 20 then
         C_Timer.After(0.3, function() TryAutoRelease(attempt + 1) end)
     end
 end
 
-local frame = CreateFrame("Frame")
-frame:RegisterEvent("ADDON_LOADED")
-frame:RegisterEvent("PLAYER_DEAD")
-frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+local pvpFrm = CreateFrame("Frame")
+pvpFrm:RegisterEvent("ADDON_LOADED")
+pvpFrm:RegisterEvent("PLAYER_DEAD")
+pvpFrm:RegisterEvent("PLAYER_ENTERING_WORLD")
+pvpFrm:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 
-frame:SetScript("OnEvent", function(self, event, arg1)
+pvpFrm:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 == ADDON_NAME then
         HookStatusTrackingBar()
     elseif event == "PLAYER_DEAD" then
