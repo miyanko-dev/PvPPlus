@@ -1,8 +1,8 @@
--- Hide honor bar in PvP instances and auto release on death in battlegrounds
+-- Hide honor bar and auto release spirit to improve PvP quality of life because default UI is cluttered
 
 local ADDON_NAME = ...
 
--- Hook CanShowBar to suppress honor bar in PvP and arena instances
+-- Override CanShowBar to hide honor bar in PvP because it clutters the arena interface
 
 local originalCanShowBar
 local function HookStatusTrackingBar()
@@ -22,13 +22,13 @@ local function HookStatusTrackingBar()
     StatusTrackingBarManager:UpdateBarsShown()
 end
 
--- Auto release ghost by clicking death popup when inside a battleground
+-- Click release button automatically to skip manual release because it delays respawning
 
 local function TryAutoRelease(attempt)
     attempt = attempt or 1
     if attempt > 20 then return end
 
-    -- Abort if a release-blocking aura or encounter is active
+    -- Skip release attempt to avoid errors because a blocking aura or encounter is active
 
     if HasNoReleaseAura() then
         C_Timer.After(0.5, function() TryAutoRelease(attempt + 1) end)
@@ -39,7 +39,7 @@ local function TryAutoRelease(attempt)
         return
     end
 
-    -- Find and click the release button on the death popup
+    -- Find and click release button to release spirit because the death popup is visible
 
     local popup = StaticPopup_Visible("DEATH")
     if popup then
@@ -50,21 +50,25 @@ local function TryAutoRelease(attempt)
         end
     end
 
-    -- Retry until popup is ready or max attempts are reached
+    -- Retry release attempt to handle delayed popup because the button may not be ready yet
 
     if attempt < 20 then
         C_Timer.After(0.3, function() TryAutoRelease(attempt + 1) end)
     end
 end
 
-local pvpFrm = CreateFrame("Frame")
-pvpFrm:RegisterEvent("ADDON_LOADED")
-pvpFrm:RegisterEvent("PLAYER_DEAD")
-pvpFrm:RegisterEvent("PLAYER_ENTERING_WORLD")
-pvpFrm:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+-- Create event frame to listen for PvP lifecycle events because addon needs event-driven activation
 
-pvpFrm:SetScript("OnEvent", function(self, event, arg1)
-    if event == "ADDON_LOADED" and arg1 == ADDON_NAME then
+local pvpFrame = CreateFrame("Frame")
+pvpFrame:RegisterEvent("ADDON_LOADED")
+pvpFrame:RegisterEvent("PLAYER_DEAD")
+pvpFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+pvpFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+
+-- Route events to handlers to trigger PvP features because each event requires different logic
+
+pvpFrame:SetScript("OnEvent", function(self, event, addonName)
+    if event == "ADDON_LOADED" and addonName == ADDON_NAME then
         HookStatusTrackingBar()
     elseif event == "PLAYER_DEAD" then
         local _, instanceType = IsInInstance()
