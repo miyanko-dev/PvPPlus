@@ -3,7 +3,6 @@
 ## Notes: Auto release in battlegrounds, hide honor bar in PvP, queue countdown timers
 ## Author: MIYANKO
 ## Version: 2.0.0
-## X-Curse-Project-ID: 1247973
 
 HonorBar.lua
 AutoRelease.lua
