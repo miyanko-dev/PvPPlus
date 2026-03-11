@@ -2,24 +2,19 @@
 
 local DEFAULT_CHAT_FRAME = _G.DEFAULT_CHAT_FRAME
 
--- Color-code seconds by urgency
-
+-- White above 10 seconds, red at 10 or below
 local function colorizeSeconds(seconds)
-    local color
-
-    if seconds > 20 then
-        color = "ff20ff20"
-    elseif seconds > 10 then
-        color = "ffffff00"
-    else
-        color = "ffff0000"
-    end
-
+    local color = seconds > 10 and "ffffffff" or "ffff0000"
     return "|c" .. color .. SecondsToTime(seconds) .. "|r"
 end
 
--- Print queue wait duration to chat
+-- Apply large font to a label frame
+local function applyLargeFont(label)
+    local fontPath = label:GetFont()
+    label:SetFont(fontPath or "Fonts\\FRIZQT__.TTF", 24, "OUTLINE")
+end
 
+-- Print queue wait duration to chat
 local function printWaitTime(seconds)
     local queueMessage = "Queue popped "
 
@@ -33,7 +28,6 @@ local function printWaitTime(seconds)
 end
 
 -- PvP queue timer
-
 local bgTimerFrame = CreateFrame("Frame")
 local bgElapsed
 local bgActiveQueue
@@ -44,6 +38,7 @@ local function getBgLabel()
 end
 
 getBgLabel():SetPoint("TOP", 0, -22)
+applyLargeFont(getBgLabel())
 
 local function updateBgTimer()
     if PVPReadyDialog_Showing(bgActiveQueue) then
@@ -62,9 +57,7 @@ end
 local function throttleBgTimer(_, elapsed)
     bgElapsed = bgElapsed + elapsed
 
-    if bgElapsed < 0.1 then
-        return
-    end
+    if bgElapsed < 0.1 then return end
 
     bgElapsed = 0
     updateBgTimer()
@@ -94,17 +87,16 @@ local function checkBgQueue(queueIndex)
 end
 
 -- PvE queue timer
-
 local lfgTimerFrame = CreateFrame("Frame")
 local lfgElapsed
 local lfgRemaining = 0
 local lfgWaitTimes = {}
 
 -- Block default label setter to prevent UI from overwriting countdown text
-
 local lfgLabelSetText = LFGDungeonReadyDialog.label.SetText
 LFGDungeonReadyDialog.label.SetText = function() end
 LFGDungeonReadyDialog.label:SetPoint("TOP", 0, -22)
+applyLargeFont(LFGDungeonReadyDialog.label)
 
 local function updateLfgTimer()
     if lfgRemaining > 0 then
@@ -118,9 +110,7 @@ end
 local function throttleLfgTimer(_, elapsed)
     lfgElapsed = lfgElapsed + elapsed
 
-    if lfgElapsed < 0.1 then
-        return
-    end
+    if lfgElapsed < 0.1 then return end
 
     lfgRemaining = lfgRemaining - lfgElapsed
     lfgElapsed = 0
@@ -128,7 +118,6 @@ local function throttleLfgTimer(_, elapsed)
 end
 
 -- Find closest queue key to match raid queues with inexact IDs
-
 local function findClosestQueue(waitTimes, targetId)
     local closestId, closestDist
 
@@ -181,7 +170,6 @@ local function handleLfgPopup()
 end
 
 -- Event registration
-
 local eventFrame = CreateFrame("Frame")
 
 eventFrame:RegisterEvent("UPDATE_BATTLEFIELD_STATUS")
@@ -193,10 +181,8 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "UPDATE_BATTLEFIELD_STATUS" then
         local queueIndex = ...
         checkBgQueue(queueIndex)
-
     elseif event == "LFG_QUEUE_STATUS_UPDATE" or event == "LFG_PROPOSAL_FAILED" then
         storeLfgQueues()
-
     elseif event == "LFG_PROPOSAL_SHOW" then
         handleLfgPopup()
     end
