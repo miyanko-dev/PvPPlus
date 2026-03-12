@@ -4,6 +4,6 @@
 ## Author: MIYANKO
 ## Version: 2.0.0
 
-HonorBar.lua
+HideHonorBar.lua
 AutoRelease.lua
 QueueTimer.lua
