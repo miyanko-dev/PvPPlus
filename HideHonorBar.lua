@@ -1,45 +1,41 @@
--- Hide honor bar in PvP instances to reduce UI clutter
-
 local ADDON_NAME = ...
+local pvpInstanceTypes = { pvp = true, arena = true }
+local pvpHonorHideFrame = CreateFrame("Frame")
 
--- Check whether the player is currently inside a battleground or arena
 local function isInPvpInstance()
     local _, instanceType = IsInInstance()
-    return instanceType == "pvp" or instanceType == "arena"
+    return pvpInstanceTypes[instanceType]
 end
 
--- Override CanShowBar once to suppress the honor bar while in PvP instances
 local function applyHonorBarHook()
     local original = StatusTrackingBarManager.CanShowBar
-
-    StatusTrackingBarManager.CanShowBar = function(self, barIndex)
-        if barIndex == StatusTrackingBarInfo.BarsEnum.Honor and isInPvpInstance() then
+    StatusTrackingBarManager.CanShowBar = function(self, bar)
+        if bar == StatusTrackingBarInfo.BarsEnum.Honor and isInPvpInstance() then
             return false
         end
-        return original(self, barIndex)
+        return original(self, bar)
     end
 end
 
--- Trigger the bar manager to re-evaluate which bars should be visible
-local function refreshBars()
-    if StatusTrackingBarManager then
-        StatusTrackingBarManager:UpdateBarsShown()
-    end
-end
+local handlers = {
+    ADDON_LOADED = function(addonName)
+        if addonName ~= ADDON_NAME then return end
+        applyHonorBarHook()
+        pvpHonorHideFrame:UnregisterEvent("ADDON_LOADED")
+    end,
+    PLAYER_ENTERING_WORLD = function()
+        RunNextFrame(function()
+            if StatusTrackingBarManager then
+                StatusTrackingBarManager:UpdateBarsShown()
+            end
+        end)
+    end,
+}
 
-local eventFrame = CreateFrame("Frame")
-eventFrame:RegisterEvent("ADDON_LOADED")
-eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-
-eventFrame:SetScript("OnEvent", function(_, event, ...)
-    if event == "ADDON_LOADED" then
-        -- Apply the hook once when this addon loads, then stop listening
-        if ... == ADDON_NAME then
-            applyHonorBarHook()
-            eventFrame:UnregisterEvent("ADDON_LOADED")
-        end
-    elseif event == "PLAYER_ENTERING_WORLD" then
-        -- Refresh on every zone transition so the bar appears or hides correctly
-        C_Timer.After(0.1, refreshBars)
-    end
+pvpHonorHideFrame:SetScript("OnEvent", function(_, event, ...)
+    if handlers[event] then handlers[event](...) end
 end)
+
+for event in pairs(handlers) do
+    pvpHonorHideFrame:RegisterEvent(event)
+end
