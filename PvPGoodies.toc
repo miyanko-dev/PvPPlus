@@ -1,5 +1,5 @@
 ## Interface: 120000
-## Title: PvP Plus
+## Title: PvP Goodies
 ## Notes: Auto spirit release, honor bar hiding, and queue countdown timers for PvP
 ## Author: MIYANKO
 ## Version: 2.0.0

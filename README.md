@@ -1,4 +1,4 @@
-# PvP Plus
+# PvP Goodies
 
 Minimal WoW addon with quality-of-life features for PvP, including automatic spirit release, honor bar hiding, and countdown timers on queue popups.
 
