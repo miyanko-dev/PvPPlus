@@ -1,11 +1,12 @@
--- Add countdown timers to queue dialog popups because knowing exactly how long you have to accept is crucial
-
--- Format remaining seconds into a colored string because visual priority should increase as time runs out
+-- Format remaining seconds to indicate urgency because visual priority should increase as time expires
 
 local function colorizeRemainingSeconds(remainingSeconds)
     local alertColor = remainingSeconds > 10 and "ffffffff" or "ffff0000"
+    local minutesRemaining = math.floor(remainingSeconds / 60)
+    local secondsRemaining = math.floor(remainingSeconds % 60)
+    local formattedTime = minutesRemaining > 0 and string.format("%dm %ds", minutesRemaining, secondsRemaining) or string.format("%ds", secondsRemaining)
 
-    return "|c" .. alertColor .. SecondsToTime(remainingSeconds) .. "|r"
+    return "|c" .. alertColor .. formattedTime .. "|r"
 end
 
 -- Apply an oversized outlined font to a given text label because standard dialog fonts are too small to read instantly
