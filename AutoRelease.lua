@@ -1,22 +1,21 @@
--- Automatically release the player spirit in battlegrounds and arenas because waiting for the manual release button is inefficient
+-- Auto release spirit in battlegrounds and arenas to skip the manual release delay
 
-local playerVersusPlayerInstanceTypes = { pvp = true, arena = true }
-local spiritReleaseFrame = CreateFrame("Frame")
+local PVP_INSTANCE_TYPES = { pvp = true, arena = true }
 
--- Listen for the player dying event to trigger the release behavior because releasing requires the player to be dead
+-- Release on death if inside a PvP instance and no self-resurrect is available
 
-spiritReleaseFrame:RegisterEvent("PLAYER_DEAD")
+local eventFrame = CreateFrame("Frame")
+eventFrame:RegisterEvent("PLAYER_DEAD")
 
-spiritReleaseFrame:SetScript("OnEvent", function()
+eventFrame:SetScript("OnEvent", function()
     local _, instanceType = IsInInstance()
+    if not PVP_INSTANCE_TYPES[instanceType] then return end
 
-    if not playerVersusPlayerInstanceTypes[instanceType] then return end
-
-    local selfResurrectOptions = C_DeathInfo
+    local options = C_DeathInfo
         and C_DeathInfo.GetSelfResurrectOptions
         and C_DeathInfo.GetSelfResurrectOptions()
 
-    if selfResurrectOptions and #selfResurrectOptions > 0 then return end
+    if options and #options > 0 then return end
 
     RunNextFrame(function()
         if UnitIsDeadOrGhost("player") then

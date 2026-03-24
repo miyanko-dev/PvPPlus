@@ -1,44 +1,42 @@
--- Hide the honor bar inside arenas and battlegrounds because it clutters the interface and provides no immediate combat value
+-- Hide the honor bar inside battlegrounds and arenas to reduce interface clutter
 
-local playerVersusPlayerInstanceTypes = { pvp = true, arena = true }
-local honorHideFrame = CreateFrame("Frame")
+local PVP_INSTANCE_TYPES = { pvp = true, arena = true }
+local eventFrame = CreateFrame("Frame")
 
--- Check if the player is currently inside a valid player versus player instance because the honor bar should remain visible elsewhere
+-- Check if the player is currently inside a PvP instance
 
-local function isInsidePlayerVersusPlayerInstance()
+local function IsInPvPInstance()
     local _, instanceType = IsInInstance()
-
-    return playerVersusPlayerInstanceTypes[instanceType]
+    return PVP_INSTANCE_TYPES[instanceType]
 end
 
--- Override the default tracking bar manager to force the honor bar hidden because the native UI provides no toggle option
+-- Override the tracking bar visibility to suppress the honor bar in PvP instances
 
-local function applyHonorBarHook()
-    local originalVisibilityFunction = StatusTrackingBarManager.CanShowBar
+local function ApplyHonorBarHook()
+    local OriginalCanShowBar = StatusTrackingBarManager.CanShowBar
 
-    StatusTrackingBarManager.CanShowBar = function(self, trackingBar)
-        if trackingBar == StatusTrackingBarInfo.BarsEnum.Honor and isInsidePlayerVersusPlayerInstance() then
+    StatusTrackingBarManager.CanShowBar = function(self, bar)
+        if bar == StatusTrackingBarInfo.BarsEnum.Honor and IsInPvPInstance() then
             return false
         end
-
-        return originalVisibilityFunction(self, trackingBar)
+        return OriginalCanShowBar(self, bar)
     end
 end
 
--- Define modular event handlers to manage the honor bar lifecycle because different events require distinct responses
+-- Event handlers for honor bar lifecycle management
 
-local frameEventHandlers = {
+local eventHandlers = {
 
-    -- Apply the hook after the addon fully loads to ensure the status tracking bar manager exists because it is loaded dynamically
+    -- Apply hook after addon loads to ensure the status tracking bar manager exists
 
-    ADDON_LOADED = function(loadedAddonName)
-        if loadedAddonName ~= "PvPPlus" then return end
+    ADDON_LOADED = function(addonName)
+        if addonName ~= "PvPGoodies" then return end
 
-        applyHonorBarHook()
-        honorHideFrame:UnregisterEvent("ADDON_LOADED")
+        ApplyHonorBarHook()
+        eventFrame:UnregisterEvent("ADDON_LOADED")
     end,
 
-    -- Force the status bars to update when entering the world to apply the hide logic because instance transitions do not trigger automatically
+    -- Force status bars to update on world entry because instance transitions skip refresh
 
     PLAYER_ENTERING_WORLD = function()
         RunNextFrame(function()
@@ -49,16 +47,14 @@ local frameEventHandlers = {
     end,
 }
 
--- Dispatch registered events to their corresponding handler functions to encapsulate logic because a single monolithic function is hard to read
+-- Dispatch events to their handlers
 
-honorHideFrame:SetScript("OnEvent", function(_, dispatchedEvent, ...)
-    if frameEventHandlers[dispatchedEvent] then
-        frameEventHandlers[dispatchedEvent](...)
+eventFrame:SetScript("OnEvent", function(_, event, ...)
+    if eventHandlers[event] then
+        eventHandlers[event](...)
     end
 end)
 
--- Register all defined events automatically to initialize the frame because manual registration is prone to omissions
-
-for definedEvent in pairs(frameEventHandlers) do
-    honorHideFrame:RegisterEvent(definedEvent)
+for event in pairs(eventHandlers) do
+    eventFrame:RegisterEvent(event)
 end

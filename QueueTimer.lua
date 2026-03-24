@@ -1,151 +1,137 @@
--- Format remaining seconds to indicate urgency because visual priority should increase as time expires
+-- Replace queue popup labels with large countdown timers that turn red below ten seconds
 
-local function colorizeRemainingSeconds(remainingSeconds)
-    local alertColor = remainingSeconds > 10 and "ffffffff" or "ffff0000"
-    local minutesRemaining = math.floor(remainingSeconds / 60)
-    local secondsRemaining = math.floor(remainingSeconds % 60)
-    local formattedTime = minutesRemaining > 0 and string.format("%dm %ds", minutesRemaining, secondsRemaining) or string.format("%ds", secondsRemaining)
+local THROTTLE_INTERVAL = 0.1
+local DUNGEON_TIMER_DURATION = 40
 
-    return "|c" .. alertColor .. formattedTime .. "|r"
+-- Format remaining seconds with white or red coloring based on urgency
+
+local function ColorizeTime(remainingSeconds)
+    local color = remainingSeconds > 10 and "ffffffff" or "ffff0000"
+    local minutes = math.floor(remainingSeconds / 60)
+    local seconds = math.floor(remainingSeconds % 60)
+    local text = minutes > 0 and string.format("%dm %ds", minutes, seconds) or string.format("%ds", seconds)
+
+    return "|c" .. color .. text .. "|r"
 end
 
--- Apply an oversized outlined font to a given text label because standard dialog fonts are too small to read instantly
+-- Apply oversized outlined font to a popup label for better readability
 
-local function applyLargeFont(textLabel)
-    local originalFontPath = textLabel:GetFont()
-
-    textLabel:SetFont(originalFontPath or "Fonts\\FRIZQT__.TTF", 16, "OUTLINE")
+local function ApplyLargeFont(label)
+    local fontPath = label:GetFont()
+    label:SetFont(fontPath or "Fonts\\FRIZQT__.TTF", 16, "OUTLINE")
 end
 
---------------------------------------------------------------------------------
--- Battleground Queue Timer
---------------------------------------------------------------------------------
+-- Retrieve the active text label from the battleground ready dialog
 
-local battlegroundTimerFrame = CreateFrame("Frame")
-local battlegroundElapsedSeconds
-local activeBattlegroundQueueIndex
+local bgTimerFrame = CreateFrame("Frame")
+local bgElapsed
+local bgQueueIndex
 
--- Retrieve the active text label for the ready dialog because the default frame dynamically swaps elements
-
-local function getBattlegroundLabel()
+local function GetBattlegroundLabel()
     return PVPReadyDialog.label or PVPReadyDialog.text
 end
 
-getBattlegroundLabel():SetPoint("TOP", 0, -22)
-applyLargeFont(getBattlegroundLabel())
+GetBattlegroundLabel():SetPoint("TOP", 0, -22)
+ApplyLargeFont(GetBattlegroundLabel())
 
--- Update the battleground timer label every tick because the expiration value needs continuous polling
+-- Update the battleground countdown or stop the timer when the dialog closes
 
-local function updateBattlegroundTimer()
-    if PVPReadyDialog_Showing(activeBattlegroundQueueIndex) then
-        local remainingSeconds = GetBattlefieldPortExpiration(activeBattlegroundQueueIndex)
+local function UpdateBattlegroundTimer()
+    if PVPReadyDialog_Showing(bgQueueIndex) then
+        local remaining = GetBattlefieldPortExpiration(bgQueueIndex)
 
-        if remainingSeconds and remainingSeconds > 0 then
-            getBattlegroundLabel():SetText(colorizeRemainingSeconds(remainingSeconds))
+        if remaining and remaining > 0 then
+            GetBattlegroundLabel():SetText(ColorizeTime(remaining))
         end
     else
-        activeBattlegroundQueueIndex = nil
-        battlegroundElapsedSeconds = nil
-        battlegroundTimerFrame:SetScript("OnUpdate", nil)
+        bgQueueIndex = nil
+        bgElapsed = nil
+        bgTimerFrame:SetScript("OnUpdate", nil)
     end
 end
 
--- Throttle the battleground timer execution to every tenth of a second because running every frame degrades client performance
+-- Throttle battleground timer updates to every tenth of a second
 
-local function throttleBattlegroundTimer(_, elapsedSeconds)
-    battlegroundElapsedSeconds = battlegroundElapsedSeconds + elapsedSeconds
+local function ThrottleBattlegroundTimer(_, elapsed)
+    bgElapsed = bgElapsed + elapsed
+    if bgElapsed < THROTTLE_INTERVAL then return end
 
-    if battlegroundElapsedSeconds < 0.1 then return end
-
-    battlegroundElapsedSeconds = 0
-    updateBattlegroundTimer()
+    bgElapsed = 0
+    UpdateBattlegroundTimer()
 end
 
--- Initialize the timer state when a battleground queue pops because the countdown must start immediately
+-- Start the battleground countdown when queue pops with confirm status
 
-local function handleBattlegroundPopup(queueIndex)
-    activeBattlegroundQueueIndex = queueIndex
-    updateBattlegroundTimer()
+local function HandleBattlegroundPopup(queueIndex)
+    bgQueueIndex = queueIndex
+    bgElapsed = 0
 
-    battlegroundElapsedSeconds = 0
-    battlegroundTimerFrame:SetScript("OnUpdate", throttleBattlegroundTimer)
+    UpdateBattlegroundTimer()
+    bgTimerFrame:SetScript("OnUpdate", ThrottleBattlegroundTimer)
 end
 
--- Inspect the current queue status to detect confirm messages because the event fires for multiple different state changes
+local function CheckBattlegroundQueue(queueIndex)
+    local status = GetBattlefieldStatus(queueIndex)
 
-local function checkBattlegroundQueue(queueIndex)
-    local queueStatus = GetBattlefieldStatus(queueIndex)
-
-    if queueStatus == "confirm" then
-        handleBattlegroundPopup(queueIndex)
+    if status == "confirm" then
+        HandleBattlegroundPopup(queueIndex)
     end
 end
 
---------------------------------------------------------------------------------
--- Dungeon Queue Timer
---------------------------------------------------------------------------------
+-- Block default label setter to prevent Blizzard from overwriting the countdown
 
-local dungeonTimerFrame = CreateFrame("Frame")
-local dungeonElapsedSeconds
-local dungeonRemainingSeconds = 0
+local dgTimerFrame = CreateFrame("Frame")
+local dgElapsed
+local dgRemaining = 0
 
--- Block the default label mutator to prevent the UI from overwriting our countdown text because Blizzard constantly refreshes it
-
-local originalDungeonLabelSetText = LFGDungeonReadyDialog.label.SetText
+local OriginalLabelSetText = LFGDungeonReadyDialog.label.SetText
 
 LFGDungeonReadyDialog.label.SetText = function() end
 LFGDungeonReadyDialog.label:SetPoint("TOP", 0, -22)
-applyLargeFont(LFGDungeonReadyDialog.label)
+ApplyLargeFont(LFGDungeonReadyDialog.label)
 
--- Update the looking for group timer label every tick because it counts down manually from forty seconds
+-- Update the dungeon countdown or stop the timer when time expires
 
-local function updateDungeonTimer()
-    if dungeonRemainingSeconds > 0 then
-        originalDungeonLabelSetText(LFGDungeonReadyDialog.label, colorizeRemainingSeconds(dungeonRemainingSeconds))
+local function UpdateDungeonTimer()
+    if dgRemaining > 0 then
+        OriginalLabelSetText(LFGDungeonReadyDialog.label, ColorizeTime(dgRemaining))
     else
-        dungeonTimerFrame:SetScript("OnUpdate", nil)
-        dungeonElapsedSeconds = nil
+        dgTimerFrame:SetScript("OnUpdate", nil)
+        dgElapsed = nil
     end
 end
 
--- Throttle the dungeon timer to decrement remaining seconds predictably because manual tracking is required
+-- Throttle dungeon timer and decrement remaining seconds manually
 
-local function throttleDungeonTimer(_, elapsedSeconds)
-    dungeonElapsedSeconds = dungeonElapsedSeconds + elapsedSeconds
+local function ThrottleDungeonTimer(_, elapsed)
+    dgElapsed = dgElapsed + elapsed
+    if dgElapsed < THROTTLE_INTERVAL then return end
 
-    if dungeonElapsedSeconds < 0.1 then return end
-
-    dungeonRemainingSeconds = dungeonRemainingSeconds - dungeonElapsedSeconds
-    dungeonElapsedSeconds = 0
-    updateDungeonTimer()
+    dgRemaining = dgRemaining - dgElapsed
+    dgElapsed = 0
+    UpdateDungeonTimer()
 end
 
--- Reset the dungeon timer state starting at forty seconds because standard looking for group popups have a fixed duration
+-- Start the dungeon countdown at forty seconds when the proposal popup shows
 
-local function handleDungeonPopup()
-    dungeonRemainingSeconds = 40
-    dungeonElapsedSeconds = 0
+local function HandleDungeonPopup()
+    dgRemaining = DUNGEON_TIMER_DURATION
+    dgElapsed = 0
 
-    dungeonTimerFrame:SetScript("OnUpdate", throttleDungeonTimer)
+    dgTimerFrame:SetScript("OnUpdate", ThrottleDungeonTimer)
 end
 
---------------------------------------------------------------------------------
--- Event Registration
---------------------------------------------------------------------------------
+-- Dispatch queue events to their corresponding timer handlers
 
-local queueEventFrame = CreateFrame("Frame")
+local eventFrame = CreateFrame("Frame")
 
--- Register queue lifecycle events to trigger the appropriate handlers because popups spawn dynamically entirely based on these triggers
+eventFrame:RegisterEvent("UPDATE_BATTLEFIELD_STATUS")
+eventFrame:RegisterEvent("LFG_PROPOSAL_SHOW")
 
-queueEventFrame:RegisterEvent("UPDATE_BATTLEFIELD_STATUS")
-queueEventFrame:RegisterEvent("LFG_PROPOSAL_SHOW")
-
-queueEventFrame:SetScript("OnEvent", function(_, dispatchedEvent, ...)
-    if dispatchedEvent == "UPDATE_BATTLEFIELD_STATUS" then
-        local passedQueueIndex = ...
-        checkBattlegroundQueue(passedQueueIndex)
-
-    elseif dispatchedEvent == "LFG_PROPOSAL_SHOW" then
-        handleDungeonPopup()
+eventFrame:SetScript("OnEvent", function(_, event, ...)
+    if event == "UPDATE_BATTLEFIELD_STATUS" then
+        CheckBattlegroundQueue(...)
+    elseif event == "LFG_PROPOSAL_SHOW" then
+        HandleDungeonPopup()
     end
 end)
