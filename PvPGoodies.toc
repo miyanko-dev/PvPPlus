@@ -3,6 +3,7 @@
 ## Notes: Auto spirit release, honor bar hiding, and queue countdown timers for PvP
 ## Author: MIYANKO
 ## Version: 2.0.0
+## IconTexture: 236537
 
 HideHonorBar.lua
 AutoRelease.lua
