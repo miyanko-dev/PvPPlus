@@ -1,0 +1,11 @@
+## Interface: 120000
+## Title: Super PvP
+## Notes: Arena frame cleanup, auto spirit release, honor bar hiding, and queue countdown timers for PvP
+## Author: MIYANKO
+## Version: 2.0.0
+## IconTexture: 236537
+
+ArenaFrames.lua
+HideHonorBar.lua
+AutoRelease.lua
+QueueTimer.lua

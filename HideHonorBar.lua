@@ -26,7 +26,7 @@ local eventHandlers = {
 
     -- Apply hook after addon loads to ensure the status tracking bar manager exists
     ADDON_LOADED = function(addonName)
-        if addonName ~= "PvPGoodies" then return end
+        if addonName ~= "SuperPvP" then return end
 
         ApplyHonorBarHook()
         eventFrame:UnregisterEvent("ADDON_LOADED")
