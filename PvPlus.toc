@@ -1,5 +1,5 @@
 ## Interface: 120000
-## Title: Super PvP
+## Title: PvP Plus
 ## Notes: BG call sheet generation, auto spirit release, honor bar hiding, and queue countdown timers for PvP
 ## Author: MIYANKO
 ## Version: 2.0.0

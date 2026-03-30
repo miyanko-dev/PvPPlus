@@ -1,4 +1,4 @@
-# Super PvP
+# PvP Plus
 
 WoW addon with quality-of-life features for PvP, including BG call sheet generation, automatic spirit release, honor bar hiding, and countdown timers on queue popups.
 
