@@ -6,5 +6,6 @@
 ## IconTexture: 236537
 
 AutoRelease.lua
+BGRoster.lua
 HideHonorBar.lua
 QueueTimer.lua
