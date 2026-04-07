@@ -1,28 +1,25 @@
--- Strip server suffix from a unit name to return the short name only
+-- Strip server suffix from unit name to return the short name
 
 local function ShortName(fullName)
     if not fullName then return "?" end
     return fullName:match("^([^%-]+)") or fullName
 end
 
-
--- Check if the player is currently inside a battleground instance
+-- Return true when player is inside a battleground instance
 
 local function IsInBattleground()
     local inInstance, instanceType = IsInInstance()
     return inInstance and instanceType == "pvp"
 end
 
-
--- Return the current battleground map name or a fallback label
+-- Return battleground map name or fallback label
 
 local function GetBattlegroundName()
     local name = GetInstanceInfo()
     return name or "Battleground"
 end
 
-
--- Resolve the player's team name through arena faction index
+-- Resolve team name through arena faction index
 
 local function GetTeamName()
     local teamIndex = GetBattlefieldArenaFaction()
@@ -31,51 +28,67 @@ local function GetTeamName()
     return UnitFactionGroup("player") or "Unknown"
 end
 
+local ROLE_LABELS = {
+    TANK    = "Tank",
+    HEALER  = "Healer",
+    DAMAGER = "DPS",
+}
 
--- Gather sorted short names of all group members including the player
+-- Build member entry from unit token, name, and class
 
-local function CollectRosterNames()
-    local names    = { ShortName(UnitName("player")) }
+local function MakeMember(unit, name, class)
+    local role = UnitGroupRolesAssigned(unit)
+    return {
+        name  = ShortName(name),
+        class = class,
+        role  = ROLE_LABELS[role] or "?",
+    }
+end
+
+-- Collect sorted member data including name, class, and role
+
+local function CollectRosterData()
     local selfGUID = UnitGUID("player")
+    local members  = { MakeMember("player", UnitName("player"), UnitClass("player")) }
 
     if IsInRaid() then
         for i = 1, GetNumGroupMembers() do
+            local memberName, _, _, _, memberClass = GetRaidRosterInfo(i)
             local unit = "raid" .. i
             local guid = UnitGUID(unit)
-            if guid and guid ~= selfGUID then
-                local name = UnitName(unit)
-                if name then
-                    names[#names + 1] = ShortName(name)
-                end
+            if memberName and guid and guid ~= selfGUID then
+                members[#members + 1] = MakeMember(unit, memberName, memberClass)
             end
         end
     elseif IsInGroup() then
         for i = 1, GetNumSubgroupMembers() do
-            local name = UnitName("party" .. i)
-            if name then
-                names[#names + 1] = ShortName(name)
+            local unit = "party" .. i
+            local memberName = UnitName(unit)
+            if memberName then
+                members[#members + 1] = MakeMember(unit, memberName, UnitClass(unit))
             end
         end
     end
 
-    table.sort(names)
-    return names
+    table.sort(members, function(a, b) return a.name < b.name end)
+    return members
 end
 
-
--- Compose the full roster text block from battleground, team, and member names
+-- Build full roster text from battleground info and member data
 
 local function BuildRosterText()
-    return GetBattlegroundName()
-        .. "\n" .. GetTeamName()
-        .. "\n\n" .. table.concat(CollectRosterNames(), "\n")
+    local lines = {}
+    for _, m in ipairs(CollectRosterData()) do
+        lines[#lines + 1] = m.name .. ", " .. (m.class or "?") .. ", " .. m.role
+    end
+    return "Battleground: " .. GetBattlegroundName()
+        .. "\nTeam / Faction: " .. GetTeamName()
+        .. "\n\nTeam:\n" .. table.concat(lines, "\n")
 end
-
 
 local rosterFrame
 
-
--- Create the roster window with scroll, editbox, and copy controls
+-- Create roster window with scroll, editbox, and copy controls
 
 local function BuildRosterFrame()
     if rosterFrame then return rosterFrame end
@@ -94,7 +107,7 @@ local function BuildRosterFrame()
 
     local scrollFrame = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
     scrollFrame:SetPoint("TOPLEFT",     frame.InsetBg, "TOPLEFT",      4,  -4)
-    scrollFrame:SetPoint("BOTTOMRIGHT", frame.InsetBg, "BOTTOMRIGHT", -24, 34)
+    scrollFrame:SetPoint("BOTTOMRIGHT", frame.InsetBg, "BOTTOMRIGHT", -8, 0)
 
     local editBox = CreateFrame("EditBox", nil, scrollFrame)
     editBox:SetSize(260, 900)
@@ -131,21 +144,31 @@ local function BuildRosterFrame()
     return frame
 end
 
+-- Refresh roster text if window is currently visible
 
--- Refresh the roster text if the window is currently visible
-
-local function RefreshRosterWindowIfOpen()
+local function RefreshRoster()
     if rosterFrame and rosterFrame:IsShown() then
         rosterFrame.editBox:SetText(BuildRosterText())
         rosterFrame.editBox:HighlightText()
     end
 end
 
+StaticPopupDialogs["PVPPLUS_MATCH_ACTIVE"] = {
+    text    = "Match is still in progress.\nWait until it's over to copy the roster.",
+    button1 = "OK",
+    timeout = 0,
+    hideOnEscape = true,
+}
 
--- Populate and show the roster window when inside a battleground
+-- Show roster window when inside a battleground and match is not engaged
 
 local function OpenRosterWindow()
     if not IsInBattleground() then return end
+
+    if C_PvP.GetActiveMatchState() == Enum.PvPMatchState.Engaged then
+        StaticPopup_Show("PVPPLUS_MATCH_ACTIVE")
+        return
+    end
 
     local frame = BuildRosterFrame()
     frame.editBox:SetText(BuildRosterText())
@@ -154,11 +177,7 @@ local function OpenRosterWindow()
     frame:Show()
 end
 
-
-local matchIsActive = false
-
-
--- Attach the Roster button to the scoreboard, hidden during active matches
+-- Attach Roster button to the scoreboard
 
 local function EnsureScoreboardButton()
     local sb = PVPMatchScoreboard
@@ -171,17 +190,13 @@ local function EnsureScoreboardButton()
         btn:SetPoint("TOPRIGHT", sb, "TOPRIGHT", -36, -8)
         btn:SetScript("OnClick", OpenRosterWindow)
         sb._pvplusBtn = btn
+        sb:HookScript("OnShow", function() sb._pvplusBtn:Show() end)
     end
 
-    if matchIsActive then
-        sb._pvplusBtn:Hide()
-    else
-        sb._pvplusBtn:Show()
-    end
+    sb._pvplusBtn:Show()
 end
 
-
--- Register PvP match and group events to drive button and roster window state
+-- Register PvP match, group, and score events to drive state
 
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
@@ -190,24 +205,24 @@ eventFrame:RegisterEvent("PVP_MATCH_ACTIVE")
 eventFrame:RegisterEvent("PVP_MATCH_COMPLETE")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 
-eventFrame:SetScript("OnEvent", function(self, event)
+eventFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "PVP_MATCH_ACTIVE" then
-        matchIsActive = true
-        local sb = PVPMatchScoreboard
-        if sb and sb._pvplusBtn then sb._pvplusBtn:Hide() end
         if rosterFrame and rosterFrame:IsShown() then rosterFrame:Hide() end
+        EnsureScoreboardButton()
 
     elseif event == "PVP_MATCH_COMPLETE" then
-        matchIsActive = false
         EnsureScoreboardButton()
 
     elseif event == "PLAYER_ENTERING_WORLD" then
-        matchIsActive = false
         if rosterFrame and rosterFrame:IsShown() then rosterFrame:Hide() end
         EnsureScoreboardButton()
 
-    else  -- GROUP_ROSTER_UPDATE, UPDATE_BATTLEFIELD_SCORE
+    elseif event == "GROUP_ROSTER_UPDATE" then
         EnsureScoreboardButton()
-        RefreshRosterWindowIfOpen()
+        RefreshRoster()
+
+    else  -- UPDATE_BATTLEFIELD_SCORE
+        EnsureScoreboardButton()
+        RefreshRoster()
     end
 end)
