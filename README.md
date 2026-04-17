@@ -1,4 +1,4 @@
-# PvP Plus
+# PvPlus
 
 WoW addon with quality-of-life features for PvP, including automatic spirit release, honor bar hiding, countdown timers on queue popups, and a copyable battleground roster.
 
