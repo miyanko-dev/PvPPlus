@@ -1,8 +1,9 @@
 ## Interface: 120005
 ## Title: PvPlus
+## Category: PvP
 ## Notes: Quality-of-life PvP enhancements for World of Warcraft.
 ## Author: MIYANKO
-## Version: 2.0.0
+## Version: 1.0.0
 ## IconTexture: 236537
 
 AutoRelease.lua
