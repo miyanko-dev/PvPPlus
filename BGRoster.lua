@@ -1,25 +1,21 @@
--- Strip server suffix from unit name to return the short name
+-- Display a copyable roster of group members in battlegrounds, attached to the PvP scoreboard.
+
+local ROLE_LABELS = { TANK = "Tank", HEALER = "Healer", DAMAGER = "DPS" }
 
 local function ShortName(fullName)
     if not fullName then return "?" end
-    return fullName:match("^([^%-]+)") or fullName
+    return fullName:match("^([^-]+)") or fullName
 end
-
--- Return true when player is inside a battleground instance
 
 local function IsInBattleground()
     local inInstance, instanceType = IsInInstance()
     return inInstance and instanceType == "pvp"
 end
 
--- Return battleground map name or fallback label
-
 local function GetBattlegroundName()
     local name = GetInstanceInfo()
     return name or "Battleground"
 end
-
--- Resolve team name through arena faction index
 
 local function GetTeamName()
     local teamIndex = GetBattlefieldArenaFaction()
@@ -28,24 +24,10 @@ local function GetTeamName()
     return UnitFactionGroup("player") or "Unknown"
 end
 
-local ROLE_LABELS = {
-    TANK    = "Tank",
-    HEALER  = "Healer",
-    DAMAGER = "DPS",
-}
-
--- Build member entry from unit token, name, and class
-
 local function MakeMember(unit, name, class)
     local role = UnitGroupRolesAssigned(unit)
-    return {
-        name  = ShortName(name),
-        class = class,
-        role  = ROLE_LABELS[role] or "?",
-    }
+    return { name = ShortName(name), class = class, role = ROLE_LABELS[role] or "?" }
 end
-
--- Collect sorted member data including name, class, and role
 
 local function CollectRosterData()
     local selfGUID = UnitGUID("player")
@@ -74,7 +56,7 @@ local function CollectRosterData()
     return members
 end
 
--- Build full roster text from battleground info and member data
+-- Build roster text
 
 local function BuildRosterText()
     local lines = {}
@@ -86,9 +68,9 @@ local function BuildRosterText()
         .. "\n\nTeam:\n" .. table.concat(lines, "\n")
 end
 
-local rosterFrame
+local rosterFrame = nil
 
--- Create roster window with scroll, editbox, and copy controls
+-- Build roster frame
 
 local function BuildRosterFrame()
     if rosterFrame then return rosterFrame end
@@ -128,7 +110,7 @@ local function BuildRosterFrame()
 
     local hintLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     hintLabel:SetPoint("BOTTOMLEFT", frame.InsetBg, "BOTTOMLEFT", 6, 12)
-    hintLabel:SetText("Ctrl+C / Cmd+C  \226\128\148  copies and closes")
+    hintLabel:SetText("Ctrl+C / Cmd+C  —  copies and closes")
     hintLabel:SetTextColor(0.65, 0.65, 0.65)
 
     local selectAllButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
@@ -144,7 +126,7 @@ local function BuildRosterFrame()
     return frame
 end
 
--- Refresh roster text if window is currently visible
+-- Refresh roster window if visible
 
 local function RefreshRoster()
     if rosterFrame and rosterFrame:IsShown() then
@@ -153,31 +135,7 @@ local function RefreshRoster()
     end
 end
 
-StaticPopupDialogs["PVPPLUS_MATCH_ACTIVE"] = {
-    text    = "Match is still in progress.\nWait until it's over to copy the roster.",
-    button1 = "OK",
-    timeout = 0,
-    hideOnEscape = true,
-}
-
--- Show roster window when inside a battleground and match is not engaged
-
-local function OpenRosterWindow()
-    if not IsInBattleground() then return end
-
-    if C_PvP.GetActiveMatchState() == Enum.PvPMatchState.Engaged then
-        StaticPopup_Show("PVPPLUS_MATCH_ACTIVE")
-        return
-    end
-
-    local frame = BuildRosterFrame()
-    frame.editBox:SetText(BuildRosterText())
-    frame.editBox:SetFocus()
-    frame.editBox:HighlightText()
-    frame:Show()
-end
-
--- Attach Roster button to the scoreboard
+-- Attach roster button to scoreboard
 
 local function EnsureScoreboardButton()
     local sb = PVPMatchScoreboard
@@ -196,7 +154,55 @@ local function EnsureScoreboardButton()
     sb._pvplusBtn:Show()
 end
 
--- Register PvP match, group, and score events to drive state
+function OpenRosterWindow()
+    if not IsInBattleground() then return end
+
+    if C_PvP.GetActiveMatchState() == Enum.PvPMatchState.Engaged then
+        StaticPopup_Show("PVPPLUS_MATCH_ACTIVE")
+        return
+    end
+
+    local frame = BuildRosterFrame()
+    frame.editBox:SetText(BuildRosterText())
+    frame.editBox:SetFocus()
+    frame.editBox:HighlightText()
+    frame:Show()
+end
+
+-- Popup for active match
+
+StaticPopupDialogs["PVPPLUS_MATCH_ACTIVE"] = {
+    text = "Match is still in progress.\nWait until it's over to copy the roster.",
+    button1 = "OK",
+    timeout = 0,
+    hideOnEscape = true,
+}
+
+-- Event handlers
+
+local function OnPVPMatchActive()
+    if rosterFrame and rosterFrame:IsShown() then rosterFrame:Hide() end
+    EnsureScoreboardButton()
+end
+
+local function OnPVPMatchComplete()
+    EnsureScoreboardButton()
+end
+
+local function OnPlayerEnteringWorld()
+    if rosterFrame and rosterFrame:IsShown() then rosterFrame:Hide() end
+    EnsureScoreboardButton()
+end
+
+local function OnGroupRosterUpdate()
+    EnsureScoreboardButton()
+    RefreshRoster()
+end
+
+local function OnBattlefieldScore()
+    EnsureScoreboardButton()
+    RefreshRoster()
+end
 
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
@@ -204,25 +210,16 @@ eventFrame:RegisterEvent("UPDATE_BATTLEFIELD_SCORE")
 eventFrame:RegisterEvent("PVP_MATCH_ACTIVE")
 eventFrame:RegisterEvent("PVP_MATCH_COMPLETE")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-
-eventFrame:SetScript("OnEvent", function(self, event, ...)
+eventFrame:SetScript("OnEvent", function(_, event)
     if event == "PVP_MATCH_ACTIVE" then
-        if rosterFrame and rosterFrame:IsShown() then rosterFrame:Hide() end
-        EnsureScoreboardButton()
-
+        OnPVPMatchActive()
     elseif event == "PVP_MATCH_COMPLETE" then
-        EnsureScoreboardButton()
-
+        OnPVPMatchComplete()
     elseif event == "PLAYER_ENTERING_WORLD" then
-        if rosterFrame and rosterFrame:IsShown() then rosterFrame:Hide() end
-        EnsureScoreboardButton()
-
+        OnPlayerEnteringWorld()
     elseif event == "GROUP_ROSTER_UPDATE" then
-        EnsureScoreboardButton()
-        RefreshRoster()
-
-    else  -- UPDATE_BATTLEFIELD_SCORE
-        EnsureScoreboardButton()
-        RefreshRoster()
+        OnGroupRosterUpdate()
+    else
+        OnBattlefieldScore()
     end
 end)

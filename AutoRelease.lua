@@ -1,25 +1,31 @@
--- Auto release spirit in battlegrounds and arenas to skip the manual release delay
+-- Auto release spirit on death in PvP instances.
 
 local PVP_INSTANCE_TYPES = { pvp = true, arena = true }
 
--- Localize API upvalue to avoid repeated global chain traversal
+local GetSelfResurrectOptions = C_DeathInfo and C_DeathInfo.GetSelfResurrectOptions or function() return {} end
 
-local GetSelfResurrectOptions = C_DeathInfo and C_DeathInfo.GetSelfResurrectOptions
+local function CanAutoRelease()
+    local _, instanceType = IsInInstance()
+    if not PVP_INSTANCE_TYPES[instanceType] then return false end
+    local options = GetSelfResurrectOptions()
+    return not (options and #options > 0)
+end
 
--- Release spirit on death, through instance and self-res checks, to skip the manual delay
+local function TryRelease()
+    if UnitIsDeadOrGhost("player") then
+        RepopMe()
+    end
+end
+
+local function OnPlayerDead()
+    if not CanAutoRelease() then return end
+    RunNextFrame(TryRelease)
+end
 
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_DEAD")
-eventFrame:SetScript("OnEvent", function()
-    local _, instanceType = IsInInstance()
-    if not PVP_INSTANCE_TYPES[instanceType] then return end
-
-    local options = GetSelfResurrectOptions and GetSelfResurrectOptions()
-    if options and #options > 0 then return end
-
-    RunNextFrame(function()
-        if UnitIsDeadOrGhost("player") then
-            RepopMe()
-        end
-    end)
+eventFrame:SetScript("OnEvent", function(_, event)
+    if event == "PLAYER_DEAD" then
+        OnPlayerDead()
+    end
 end)
