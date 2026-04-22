@@ -1,4 +1,4 @@
-## Interface: 120000
+## Interface: 120005
 ## Title: PvPlus
 ## Notes: Auto spirit release, honor bar hiding, and queue countdown timers for PvP
 ## Author: MIYANKO
