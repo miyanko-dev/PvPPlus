@@ -9,5 +9,4 @@
 AutoRelease.lua
 BGRoster.lua
 HideHonorBar.lua
-HidePrestigeBadge.lua
 QueueTimer.lua
