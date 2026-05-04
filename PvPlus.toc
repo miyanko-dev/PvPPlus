@@ -1,11 +1,14 @@
 ## Interface: 120005
 ## Title: PvPlus
 ## Category: PvP
-## Notes: Bundles PvP quality-of-life tweaks: auto-release on death, copyable battleground roster, hidden honor bar inside instances, and countdown timers on queue popups.
+## Notes: Bundles PvP quality-of-life tweaks: auto-release on death, copyable battleground roster, hidden honor bar inside instances, countdown timers on queue popups, and copy-name context menus.
 ## Author: MIYANKO
 ## Version: 1.0.0
 ## IconTexture: 236537
 
+PopupList.lua
 AutoRelease.lua
 HideHonorBar.lua
 QueueTimer.lua
+Scoreboard.lua
+UnitFrames.lua
