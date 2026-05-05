@@ -1,5 +1,5 @@
 ## Interface: 120005
-## Title: PvPlus
+## Title: PvP Plus
 ## Category: PvP
 ## Notes: Bundles PvP quality-of-life tweaks: auto-release on death, copyable battleground roster, hidden honor bar inside instances, countdown timers on queue popups, and copy-name context menus.
 ## Author: MIYANKO
