@@ -1,11 +1,21 @@
-# PvP Plus
+# PvPPlus
 
-Quality-of-life PvP enhancements for World of Warcraft.
+A bundle of PvP quality-of-life tweaks for World of Warcraft Retail.
 
 ## Features
 
-- **Auto Spirit Release**: Automates the release process in battlegrounds.
-- **Honor Bar Hiding**: Hides the honor bar inside PvP instances.
-- **Queue Timers**: Adds countdown timers on PvP queue popups.
-- **Scoreboard Contact**: Adds a "Contact Players" button to the PvP match results panel to collect player names with copy, whisper, and invite actions per player.
-- **Context Menu Copy**: Injects a "Copy Full Name" option into right-click context menus across unit frames, group finder entries, friends lists, guild rosters, and PvP scoreboards.
+- **Auto spirit release** — releases for you on death in battlegrounds
+- **Queue timers** — countdown on PvP queue popups so you know how long you have left to accept
+- **Honor bar hidden** — inside PvP instances only
+- **Contact Players** — a button on the match results panel that collects the roster, with copy, whisper and invite per player
+- **Copy Full Name** — added to right-click menus on unit frames, group finder entries, friends list, guild roster and PvP scoreboards
+
+## Installation
+
+1. Copy the `PvPPlus/` folder into `World of Warcraft/_retail_/Interface/AddOns/`.
+2. Restart the game or `/reload`.
+3. Enable **PvP Plus** in the AddOns list.
+
+## Requirements
+
+World of Warcraft Retail (Interface `120005`).
